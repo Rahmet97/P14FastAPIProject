@@ -1,5 +1,7 @@
 from datetime import datetime
-from pydantic import BaseModel
+from typing import List
+
+from pydantic import BaseModel, Field
 
 
 class BlogSchema(BaseModel):
@@ -10,6 +12,23 @@ class BlogSchema(BaseModel):
     view_count: int
 
 
-class BlogSchemaCreate(BaseModel):
-    title: str
-    description: str
+class SubcategorySchemaCreate(BaseModel):
+    name: str
+    subcategory: int
+
+
+class SubcategoryScheme(BaseModel):
+    id: int
+    name: str
+    subcategory: int
+
+
+class CategorySchemaCreate(BaseModel):
+    name: str
+    category: str = Field(examples=['women', 'men', 'kids'])
+
+
+class CategoryScheme(BaseModel):
+    id: int
+    name: str
+    subcategories: List[SubcategoryScheme]

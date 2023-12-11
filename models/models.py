@@ -10,7 +10,8 @@ from sqlalchemy import (
     TIMESTAMP,
     Boolean,
     ForeignKey,
-    DECIMAL
+    DECIMAL,
+    UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ENUM
@@ -96,7 +97,8 @@ category = Table(
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('name', String),
-    Column('category', subcategory_enum)
+    Column('category', subcategory_enum),
+    UniqueConstraint('name', 'category', name='uniqNC')
 )
 
 subcategory = Table(
@@ -104,7 +106,8 @@ subcategory = Table(
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('name', String),
-    Column('subcategory', ForeignKey('category.id'))
+    Column('subcategory', ForeignKey('category.id')),
+    UniqueConstraint('name', 'subcategory', name='uniqNS')
 )
 
 status_enum = ENUM('delivered', 'processing', 'canceled', name='status_enum')

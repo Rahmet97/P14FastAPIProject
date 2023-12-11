@@ -53,10 +53,12 @@ product = Table(
     Column('brand_id', ForeignKey('brand.id')),
     Column('name', String),
     Column('price', DECIMAL(precision=10, scale=2)),
+    Column('discount_percent', Integer, default=0),
     Column('quantity', Integer),
+    Column('created_at', TIMESTAMP, default=datetime.utcnow),
     Column('sold_quantity', Integer),
     Column('description', Text),
-    Column('category_id', ForeignKey('category.id'))
+    Column('subcategory_id', ForeignKey('subcategory.id'))
 )
 
 product_color_relationship = relationship("color", secondary=product_colors, backref="products")
@@ -87,7 +89,7 @@ file = Table(
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('file', String),
-    # Column('product_id', ForeignKey())
+    Column('product_id', ForeignKey('product.id'))
 )
 
 subcategory_enum = ENUM('men', 'women', 'kids', name='subcategory_enum')
@@ -128,7 +130,7 @@ review = Table(
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('message', Text),
-    Column('user_id', ForeignKey('users.id')),
+    Column('user_id', ForeignKey('users.id'), nullable=True),
     Column('product_id', ForeignKey('product.id')),
     Column('reviewed_at', TIMESTAMP, default=datetime.utcnow)
 )

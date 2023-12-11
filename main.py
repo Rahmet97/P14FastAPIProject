@@ -3,13 +3,14 @@ from typing import List
 from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import insert, select, and_, update
+from sqlalchemy import insert, select, update
 
 from auth.utils import verify_token
 from database import get_async_session
 from models.models import category, subcategory
 from schemas import BlogSchema, CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme
 from auth.auth import register_router
+from mobile.mobile import mobile_router
 
 app = FastAPI(title='P14Project', version='1.0.0')
 router = APIRouter()
@@ -103,3 +104,4 @@ async def update_subcategory(
 
 app.include_router(register_router)
 app.include_router(router)
+app.include_router(mobile_router)

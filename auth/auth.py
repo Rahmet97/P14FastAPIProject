@@ -1,5 +1,3 @@
-import jwt
-
 from .schemas import UserInfo, User, UserInDB, UserLogin
 from database import get_async_session
 

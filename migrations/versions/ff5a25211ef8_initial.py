@@ -1,16 +1,16 @@
-"""models
+"""initial
 
-Revision ID: 9484c4f093de
+Revision ID: ff5a25211ef8
 Revises: 
-Create Date: 2023-12-09 15:44:06.834396
+Create Date: 2023-12-13 11:34:33.287535
 
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+
 
 # revision identifiers, used by Alembic.
-revision = '9484c4f093de'
+revision = 'ff5a25211ef8'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,17 +26,11 @@ def upgrade() -> None:
     op.create_table('category',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name', sa.String(), nullable=True),
-    sa.Column('category', postgresql.ENUM('men', 'women', 'kids', name='subcategory_enum'), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('color',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name', sa.String(), nullable=True),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('file',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('file', sa.String(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('size',
@@ -55,24 +49,35 @@ def upgrade() -> None:
     sa.Column('is_superuser', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('subcategory',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('name', sa.String(), nullable=True),
+    sa.Column('category_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name', 'category_id', name='uniqNS')
+    )
     op.create_table('product',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('brand_id', sa.Integer(), nullable=True),
     sa.Column('name', sa.String(), nullable=True),
     sa.Column('price', sa.DECIMAL(precision=10, scale=2), nullable=True),
+    sa.Column('discount_percent', sa.Integer(), nullable=True),
     sa.Column('quantity', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.TIMESTAMP(), nullable=True),
     sa.Column('sold_quantity', sa.Integer(), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('category_id', sa.Integer(), nullable=True),
+    sa.Column('subcategory_id', sa.Integer(), nullable=True),
+    sa.Column('category', sa.Enum('men', 'women', 'kids', name='categoryenum'), nullable=True),
     sa.ForeignKeyConstraint(['brand_id'], ['brand.id'], ),
-    sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
+    sa.ForeignKeyConstraint(['subcategory_id'], ['subcategory.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('subcategory',
+    op.create_table('file',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('name', sa.String(), nullable=True),
-    sa.Column('subcategory', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['subcategory'], ['category.id'], ),
+    sa.Column('file', sa.String(), nullable=True),
+    sa.Column('product_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('order',
@@ -81,7 +86,7 @@ def upgrade() -> None:
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('count', sa.Integer(), nullable=True),
     sa.Column('ordered_at', sa.TIMESTAMP(), nullable=True),
-    sa.Column('status', postgresql.ENUM('delivered', 'processing', 'canceled', name='status_enum'), nullable=True),
+    sa.Column('status', sa.Enum('delivered', 'processing', 'canceled', name='statusenum'), nullable=True),
     sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -117,11 +122,11 @@ def downgrade() -> None:
     op.drop_table('product_sizes')
     op.drop_table('product_colors')
     op.drop_table('order')
-    op.drop_table('subcategory')
+    op.drop_table('file')
     op.drop_table('product')
+    op.drop_table('subcategory')
     op.drop_table('users')
     op.drop_table('size')
-    op.drop_table('file')
     op.drop_table('color')
     op.drop_table('category')
     op.drop_table('brand')

@@ -1,3 +1,4 @@
+import enum
 from datetime import datetime
 
 from sqlalchemy import (
@@ -11,10 +12,10 @@ from sqlalchemy import (
     Boolean,
     ForeignKey,
     DECIMAL,
-    UniqueConstraint
+    UniqueConstraint,
+    Enum
 )
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import ENUM
 
 metadata = MetaData()
 
@@ -46,6 +47,13 @@ size = Table(
     Column('size', String)
 )
 
+
+class CategoryEnum(enum.Enum):
+    men = 'Men'
+    women = 'Women'
+    kids = 'Kids'
+
+
 product = Table(
     'product',
     metadata,
@@ -58,7 +66,8 @@ product = Table(
     Column('created_at', TIMESTAMP, default=datetime.utcnow),
     Column('sold_quantity', Integer),
     Column('description', Text),
-    Column('subcategory_id', ForeignKey('subcategory.id'))
+    Column('subcategory_id', ForeignKey('subcategory.id')),
+    Column('category', Enum(CategoryEnum))
 )
 
 product_color_relationship = relationship("color", secondary=product_colors, backref="products")
@@ -92,15 +101,11 @@ file = Table(
     Column('product_id', ForeignKey('product.id'))
 )
 
-subcategory_enum = ENUM('men', 'women', 'kids', name='subcategory_enum')
-
 category = Table(
     'category',
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
-    Column('name', String),
-    Column('category', subcategory_enum),
-    UniqueConstraint('name', 'category', name='uniqNC')
+    Column('name', String)
 )
 
 subcategory = Table(
@@ -108,11 +113,16 @@ subcategory = Table(
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('name', String),
-    Column('subcategory', ForeignKey('category.id')),
-    UniqueConstraint('name', 'subcategory', name='uniqNS')
+    Column('category_id', ForeignKey('category.id')),
+    UniqueConstraint('name', 'category_id', name='uniqNS')
 )
 
-status_enum = ENUM('delivered', 'processing', 'canceled', name='status_enum')
+
+class StatusEnum(enum.Enum):
+    delivered = 'delivered'
+    processing = 'processing'
+    canceled = 'canceled'
+
 
 order = Table(
     'order',
@@ -122,7 +132,7 @@ order = Table(
     Column('user_id', ForeignKey('users.id')),
     Column('count', Integer),
     Column('ordered_at', TIMESTAMP, default=datetime.utcnow),
-    Column('status', status_enum)
+    Column('status', Enum(StatusEnum))
 )
 
 review = Table(

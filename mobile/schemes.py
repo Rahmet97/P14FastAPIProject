@@ -22,6 +22,7 @@ class ProductScheme(BaseModel):
     sold_quantity: int
     description: str
     subcategory_id: int
+    category: str
 
 
 class MainProductScheme(BaseModel):

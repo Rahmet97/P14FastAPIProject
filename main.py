@@ -7,8 +7,9 @@ from sqlalchemy import insert, select, update
 
 from auth.utils import verify_token
 from database import get_async_session
-from models.models import category, subcategory
-from schemas import BlogSchema, CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme
+from mobile.schemes import ProductScheme
+from models.models import category, subcategory, product
+from schemas import CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme, ProductListSchema
 from auth.auth import register_router
 from mobile.mobile import mobile_router
 
@@ -36,6 +37,19 @@ async def get_categories(keyword: str, token: dict = Depends(verify_token),
         }
         categories.append(data)
     return categories
+
+
+@router.get('/categories-filter', response_model=List[CategorySchemaCreate])
+async def get_category_filter(
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+    query = select(category)
+    category__data = await session.execute(query)
+    category_data = category__data.all()
+    return category_data
 
 
 @router.post('/category')
@@ -100,6 +114,23 @@ async def update_subcategory(
     await session.execute(query)
     await session.commit()
     return {'success': True}
+
+
+@router.get('/products', response_model=List[ProductListSchema])
+async def product_list(
+        category_id: int | None,
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+    if category_id is None:
+        query = select(product).order_by('id')
+    else:
+        query = select(product).where(product.c.subcategory_id.category_id == category_id).order_by('id')
+    product__data = await session.execute(query)
+    product_data = product__data.all()
+    return product_data
 
 
 app.include_router(register_router)

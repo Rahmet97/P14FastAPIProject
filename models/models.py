@@ -66,6 +66,7 @@ product = Table(
     Column('created_at', TIMESTAMP, default=datetime.utcnow),
     Column('sold_quantity', Integer),
     Column('description', Text),
+    Column('category_id', ForeignKey('category.id')),
     Column('subcategory_id', ForeignKey('subcategory.id')),
     Column('category', Enum(CategoryEnum))
 )

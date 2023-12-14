@@ -13,7 +13,7 @@ class BrandScheme(BaseModel):
 
 class ProductScheme(BaseModel):
     id: int
-    brand_id: int
+    brand: dict
     name: str
     price: float
     discount_percent: int
@@ -21,10 +21,11 @@ class ProductScheme(BaseModel):
     created_at: datetime
     sold_quantity: int
     description: str
-    subcategory_id: int
+    subcategory: dict
     category: str
 
 
 class MainProductScheme(BaseModel):
-    sales: List[ProductScheme]
-    new: List[ProductScheme]
+    category_name: str
+    products: List[ProductScheme]
+

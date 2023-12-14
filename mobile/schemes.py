@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import List
 
+from decimal import Decimal
+
 from pydantic import BaseModel, Field
 
 from schemas import SubcategoryScheme
@@ -28,4 +30,11 @@ class ProductScheme(BaseModel):
 class MainProductScheme(BaseModel):
     category_name: str
     products: List[ProductScheme]
+
+
+class SubCategoryProductScheme(BaseModel):
+    name: str
+    brand: dict
+    price: float
+    description: str
 

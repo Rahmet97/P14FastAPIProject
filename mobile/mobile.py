@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import List
 
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.sql import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import NoResultFound
@@ -9,8 +9,9 @@ from fastapi import Depends, APIRouter, HTTPException
 
 from auth.utils import verify_token
 from database import get_async_session
-from .schemes import ProductScheme, MainProductScheme
-from models.models import product, category, subcategory, brand
+from .schemes import ProductScheme, MainProductScheme, RequestDataScheme, ProductForFilterScheme, CategorySchema, \
+    SizeScheme
+from models.models import product, category, subcategory, brand, product_sizes, size
 
 mobile_router = APIRouter()
 
@@ -78,3 +79,58 @@ async def product_detail(
         return product_data
     except NoResultFound:
         raise HTTPException(status_code=404, detail='Product not found!')
+
+
+@mobile_router.get('/categories', response_model=List[CategorySchema])
+async def get_category_filter(
+        session: AsyncSession = Depends(get_async_session)
+):
+    query = select(category)
+    category__data = await session.execute(query)
+    category_data = category__data.all()
+    return category_data
+
+
+@mobile_router.get('/category-sizes', response_model=List[SizeScheme])
+async def category_sizes(category_id: int, session: AsyncSession = Depends(get_async_session)):
+    query = select(size).where(size.c.category_id == category_id).order_by('id')
+    sizes__data = await session.execute(query)
+    sizes_data = sizes__data.all()
+    return sizes_data
+
+
+@mobile_router.get('/filter', response_model=List[ProductForFilterScheme])
+async def product_filter(
+        request_data: RequestDataScheme,
+        session: AsyncSession = Depends(get_async_session)
+):
+    query = select(product)
+    if request_data.min is not None and request_data.max is not None:
+        if request_data.min <= request_data.max:
+            query = query.where(and_(product.c.price >= request_data.min, product.c.price <= request_data.max)).order_by('id')
+        else:
+            raise HTTPException(status_code=400, detail="Min price should be less than or equal to max price.")
+
+    if request_data.sizes is not None:
+        if request_data.sizes:
+            product_sizes_query = select(product_sizes).where(product_sizes.c.size_id.in_(request_data.sizes))
+            product_datas = await session.execute(product_sizes_query)
+            product_ids = [row.product_id for row in product_datas]
+            if product_ids:
+                query = query.where(product.c.id.in_(product_ids)).order_by('id')
+            else:
+                raise HTTPException(status_code=400, detail="No products found for the given size(s).")
+
+    if request_data.category is not None:
+        if request_data.category in ['women', 'men', 'kids']:
+            query = query.where(product.c.category == request_data.category).order_by('id')
+        else:
+            raise HTTPException(status_code=400, detail="No products found for the given category.")
+
+    if request_data.brands is not None:
+        query = query.where(product.c.brand_id.in_(request_data.brands)).order_by('id')
+
+    product__datas = await session.execute(query)
+    product_datas = product__datas.all()
+    print(product_datas)
+    return product_datas

@@ -44,7 +44,8 @@ size = Table(
     'size',
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
-    Column('size', String)
+    Column('size', String),
+    Column('category_id', ForeignKey('category.id'))
 )
 
 

@@ -147,4 +147,4 @@ async def user_list(token: dict = Depends(verify_token), session: AsyncSession =
 
 app.include_router(register_router)
 app.include_router(router)
-app.include_router(mobile_router)
+app.include_router(mobile_router, prefix='/mobile')

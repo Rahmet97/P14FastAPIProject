@@ -84,7 +84,8 @@ users = Table(
     Column('phone', String),
     Column('username', String),
     Column('password', String),
-    Column('is_superuser', Boolean, default=False)
+    Column('is_superuser', Boolean, default=False),
+    Column('joined_at', TIMESTAMP, default=datetime.utcnow)
 )
 
 brand = Table(

@@ -5,10 +5,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import insert, select, update
 
+from auth.schemas import UserRead
 from auth.utils import verify_token
 from database import get_async_session
 from mobile.schemes import ProductScheme
-from models.models import category, subcategory, product
+from models.models import category, subcategory, product, users
 from schemas import CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme, ProductListSchema
 from auth.auth import register_router
 from mobile.mobile import mobile_router
@@ -131,6 +132,17 @@ async def product_list(
     product__data = await session.execute(query)
     product_data = product__data.all()
     return product_data
+
+
+@router.get('/user-list', response_model=List[UserRead])
+async def user_list(token: dict = Depends(verify_token), session: AsyncSession = Depends(get_async_session)):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    query = select(users)
+    users_list = await session.execute(query)
+    result = users_list.all()
+    return result
 
 
 app.include_router(register_router)

@@ -130,6 +130,7 @@ order = Table(
     'order',
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('tracking_number', Text),
     Column('product_id', ForeignKey('product.id')),
     Column('user_id', ForeignKey('users.id')),
     Column('count', Integer),
@@ -145,4 +146,28 @@ review = Table(
     Column('user_id', ForeignKey('users.id'), nullable=True),
     Column('product_id', ForeignKey('product.id')),
     Column('reviewed_at', TIMESTAMP, default=datetime.utcnow)
+)
+
+shipping_address = Table(
+    'shipping_address',
+    metadata,
+    Column('order_id', ForeignKey('order.id')),
+    Column('user_id', ForeignKey('user.id')),
+    Column('shipping address', Text),
+)
+
+delivery_method = Table(
+    'delivery_method',
+    metadata,
+    Column('delivery_company', String),
+    Column('delivery_day', String),
+    Column('delivery_price', DECIMAL(precision=10, scale=2)),
+)
+
+order_detail = Table(
+    'order_detail',
+    metadata,
+    Column('tracking_number', ForeignKey('order.tracking_number')),
+    Column('shipping_address_id', ForeignKey('shipping_address.id')),
+    Column('delivery_method_id', ForeignKey('delivery_method.id')),
 )

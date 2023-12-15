@@ -31,3 +31,10 @@ class ProductListSchema(BaseModel):
     price: float
     quantity: int
     sold_quantity: int
+
+
+class OrderDetailSchema(BaseModel):
+    id: int
+    tracking_number: str
+    shipping_address: str
+    delivery_method: str

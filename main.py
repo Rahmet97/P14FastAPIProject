@@ -134,6 +134,8 @@ async def product_list(
     return product_data
 
 
+
+
 @router.get('/user-list', response_model=List[UserRead])
 async def user_list(token: dict = Depends(verify_token), session: AsyncSession = Depends(get_async_session)):
     if token is None:
@@ -143,6 +145,17 @@ async def user_list(token: dict = Depends(verify_token), session: AsyncSession =
     users_list = await session.execute(query)
     result = users_list.all()
     return result
+
+
+@router.get('/order-detail')
+async def order_detail(
+        id: int,
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+    query = select()
 
 
 app.include_router(register_router)

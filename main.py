@@ -9,8 +9,9 @@ from auth.schemas import UserRead
 from auth.utils import verify_token
 from database import get_async_session
 from mobile.schemes import ProductScheme
-from models.models import category, subcategory, product, users
-from schemas import CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme, ProductListSchema
+from models.models import category, subcategory, product, users, order, order_detail
+from schemas import CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme, ProductListSchema, OrderDetailSchema, \
+    OrderListSchema
 from auth.auth import register_router
 from mobile.mobile import mobile_router
 
@@ -134,8 +135,6 @@ async def product_list(
     return product_data
 
 
-
-
 @router.get('/user-list', response_model=List[UserRead])
 async def user_list(token: dict = Depends(verify_token), session: AsyncSession = Depends(get_async_session)):
     if token is None:
@@ -147,15 +146,30 @@ async def user_list(token: dict = Depends(verify_token), session: AsyncSession =
     return result
 
 
-@router.get('/order-detail')
-async def order_detail(
-        id: int,
+@router.get('/orders', response_model=List[OrderListSchema])
+async def order_list(token: dict = Depends(verify_token), session: AsyncSession = Depends(get_async_session)):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+    else:
+        query = select(order).all().order_by('id')
+    order__data = await session.execute(query)
+    order_data = order__data.all()
+    return order_data
+
+
+@router.get('/order-detail/{order_id}', response_model=OrderDetailSchema)
+async def order_detail_(
+        order_id: int,
         token: dict = Depends(verify_token),
         session: AsyncSession = Depends(get_async_session)
 ):
     if token is None:
         raise HTTPException(status_code=403, detail='Forbidden')
-    query = select()
+    else:
+        query = select(order_detail).where(order_detail.c.id == order_id)
+    order__data = await session.execute(query)
+    order_data = order__data.one()
+    return order_data
 
 
 app.include_router(register_router)

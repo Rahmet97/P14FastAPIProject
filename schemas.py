@@ -33,6 +33,14 @@ class ProductListSchema(BaseModel):
     sold_quantity: int
 
 
+class OrderListSchema(BaseModel):
+    id: int
+    name: int
+    ordered_at: datetime
+    price: float
+    status: str
+
+
 class OrderDetailSchema(BaseModel):
     id: int
     tracking_number: str

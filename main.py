@@ -9,8 +9,8 @@ from auth.schemas import UserRead
 from auth.utils import verify_token
 from database import get_async_session
 from mobile.schemes import ProductScheme
-from models.models import category, subcategory, product, users
-from schemas import CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme, ProductListSchema
+from models.models import category, subcategory, product, users, order
+from schemas import CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme, ProductListSchema, OrderScheme
 from auth.auth import register_router
 from mobile.mobile import mobile_router
 
@@ -143,6 +143,20 @@ async def user_list(token: dict = Depends(verify_token), session: AsyncSession =
     users_list = await session.execute(query)
     result = users_list.all()
     return result
+
+
+@router.get('/order', response_model=List[OrderScheme])
+async def order_list(
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    query = select(order).order_by('id')
+    order__data = await session.execute(query)
+    order_data = order__data.all()
+    return order_data
 
 
 app.include_router(register_router)

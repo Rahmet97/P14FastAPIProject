@@ -1,8 +1,8 @@
-"""initial
+"""Payment method added to order
 
-Revision ID: ff5a25211ef8
+Revision ID: cd4bc4f2052b
 Revises: 
-Create Date: 2023-12-13 11:34:33.287535
+Create Date: 2023-12-20 11:45:57.576278
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'ff5a25211ef8'
+revision = 'cd4bc4f2052b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -33,9 +33,11 @@ def upgrade() -> None:
     sa.Column('name', sa.String(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('size',
+    op.create_table('delivery_method',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('size', sa.String(), nullable=True),
+    sa.Column('delivery_company', sa.String(), nullable=True),
+    sa.Column('delivery_day', sa.String(), nullable=True),
+    sa.Column('delivery_price', sa.DECIMAL(precision=10, scale=2), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('users',
@@ -47,6 +49,21 @@ def upgrade() -> None:
     sa.Column('username', sa.String(), nullable=True),
     sa.Column('password', sa.String(), nullable=True),
     sa.Column('is_superuser', sa.Boolean(), nullable=True),
+    sa.Column('joined_at', sa.TIMESTAMP(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('shipping_address',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('shipping_address', sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('size',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('size', sa.String(), nullable=True),
+    sa.Column('category_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('subcategory',
@@ -56,6 +73,15 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name', 'category_id', name='uniqNS')
+    )
+    op.create_table('user_card',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('card_number', sa.String(), nullable=True),
+    sa.Column('card_expiration', sa.String(), nullable=True),
+    sa.Column('cvc', sa.Integer(), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('product',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -67,9 +93,11 @@ def upgrade() -> None:
     sa.Column('created_at', sa.TIMESTAMP(), nullable=True),
     sa.Column('sold_quantity', sa.Integer(), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('category_id', sa.Integer(), nullable=True),
     sa.Column('subcategory_id', sa.Integer(), nullable=True),
     sa.Column('category', sa.Enum('men', 'women', 'kids', name='categoryenum'), nullable=True),
     sa.ForeignKeyConstraint(['brand_id'], ['brand.id'], ),
+    sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
     sa.ForeignKeyConstraint(['subcategory_id'], ['subcategory.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -82,12 +110,20 @@ def upgrade() -> None:
     )
     op.create_table('order',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('tracking_number', sa.Text(), nullable=True),
     sa.Column('product_id', sa.Integer(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('count', sa.Integer(), nullable=True),
     sa.Column('ordered_at', sa.TIMESTAMP(), nullable=True),
     sa.Column('status', sa.Enum('delivered', 'processing', 'canceled', name='statusenum'), nullable=True),
+    sa.Column('payment_method', sa.Enum('cash', 'card', name='paymentmethodenum'), nullable=True),
+    sa.Column('shipping_address_id', sa.Integer(), nullable=True),
+    sa.Column('delivery_method_id', sa.Integer(), nullable=True),
+    sa.Column('user_card_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['delivery_method_id'], ['delivery_method.id'], ),
     sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
+    sa.ForeignKeyConstraint(['shipping_address_id'], ['shipping_address.id'], ),
+    sa.ForeignKeyConstraint(['user_card_id'], ['user_card.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -124,9 +160,12 @@ def downgrade() -> None:
     op.drop_table('order')
     op.drop_table('file')
     op.drop_table('product')
+    op.drop_table('user_card')
     op.drop_table('subcategory')
-    op.drop_table('users')
     op.drop_table('size')
+    op.drop_table('shipping_address')
+    op.drop_table('users')
+    op.drop_table('delivery_method')
     op.drop_table('color')
     op.drop_table('category')
     op.drop_table('brand')

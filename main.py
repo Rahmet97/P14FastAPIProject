@@ -1,15 +1,20 @@
+import os
+from datetime import datetime, date
 from typing import List
 
-from fastapi import FastAPI, Depends, HTTPException, APIRouter
+import aiofiles
+import secrets
+from fastapi import FastAPI, Depends, HTTPException, APIRouter, UploadFile
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import insert, select, update
+from sqlalchemy import insert, select, update, func
 
 from auth.schemas import UserRead
 from auth.utils import verify_token
 from database import get_async_session
-from mobile.schemes import ProductScheme
-from models.models import category, subcategory, product, users, order
+from models.models import category, subcategory, product, users, order, file
 from schemas import CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme, ProductListSchema, OrderScheme
 from auth.auth import register_router
 from mobile.mobile import mobile_router
@@ -19,16 +24,16 @@ router = APIRouter()
 
 
 @router.get('/category', response_model=List[CategoryScheme])
-async def get_categories(keyword: str, token: dict = Depends(verify_token),
+async def get_categories(token: dict = Depends(verify_token),
                          session: AsyncSession = Depends(get_async_session)):
     if token is None:
         raise HTTPException(status_code=403, detail='Forbidden')
-    query = select(category).where(category.c.category == keyword)
+    query = select(category)
     category__data = await session.execute(query)
     category_data = category__data.all()
     categories = []
     for single in category_data:
-        query2 = select(subcategory).where(subcategory.c.subcategory == single.id)
+        query2 = select(subcategory).where(subcategory.c.category_id == single.id)
         subcategory__data = await session.execute(query2)
         subcategory_data = subcategory__data.all()
         data = {
@@ -147,18 +152,75 @@ async def user_list(token: dict = Depends(verify_token), session: AsyncSession =
 
 @router.get('/order', response_model=List[OrderScheme])
 async def order_list(
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        status: str | None = None,
+        today: bool = False,
         token: dict = Depends(verify_token),
         session: AsyncSession = Depends(get_async_session)
 ):
     if token is None:
         raise HTTPException(status_code=403, detail='Forbidden')
 
-    query = select(order).order_by('id')
+    query = select(order)
+
+    if start_date is not None and end_date is not None:
+        query = query.where(order.c.ordered_at >= start_date).where(order.c.ordered_at <= end_date)
+    elif start_date is not None and end_date is None:
+        query = query.where(order.c.ordered_at == start_date)
+
+    if status is not None:
+        query = query.where(order.c.status == status)
+
+    if today:
+        query = query.where(func.date(order.c.ordered_at) == datetime.utcnow().date())
+
+    query = query.order_by('id')
+
     order__data = await session.execute(query)
     order_data = order__data.all()
     return order_data
 
 
+@router.post('/upload-file')
+async def upload_file(
+        upload__file: UploadFile,
+        product_id: int,
+        session: AsyncSession = Depends(get_async_session)
+):
+    try:
+        out_file = f'files/{upload__file.filename}'
+        async with aiofiles.open(f'media/{out_file}', 'wb') as f:
+            content = await upload__file.read()
+            await f.write(content)
+        hashcode = secrets.token_hex(32)
+        query = insert(file).values(product_id=product_id, file=out_file, hash=hashcode)
+        await session.execute(query)
+        await session.commit()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=e)
+    return {'success': True, 'message': 'Uploaded successfully'}
+
+
+@router.get('/download-file/{hashcode}')
+async def download_file(
+        hashcode: str,
+        session: AsyncSession = Depends(get_async_session)
+):
+    if hashcode is None:
+        raise HTTPException(status_code=400, detail='Invalid hashcode')
+
+    query = select(file).where(file.c.hash == hashcode)
+    file__data = await session.execute(query)
+    file_data = file__data.one()
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    print(BASE_DIR)
+    file_url = os.path.join(BASE_DIR, f'media/{file_data.file}')
+    file_name = file_data.file.split('/')[-1]
+    return FileResponse(path=file_url, media_type="application/octet-stream", filename=file_name)
+
+
 app.include_router(register_router)
 app.include_router(router)
 app.include_router(mobile_router, prefix='/mobile')
+app.mount('/media', StaticFiles(directory='media'),'files')

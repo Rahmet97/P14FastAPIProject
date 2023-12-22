@@ -6,13 +6,13 @@ from pydantic import BaseModel, Field
 
 class SubcategorySchemaCreate(BaseModel):
     name: str
-    subcategory: int
+    category_id: int
 
 
 class SubcategoryScheme(BaseModel):
     id: int
     name: str
-    subcategory: int
+    category_id: int
 
 
 class CategorySchemaCreate(BaseModel):

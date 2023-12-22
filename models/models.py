@@ -101,7 +101,8 @@ file = Table(
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('file', String),
-    Column('product_id', ForeignKey('product.id'))
+    Column('product_id', ForeignKey('product.id')),
+    Column('hash', String, unique=True)
 )
 
 category = Table(
@@ -127,15 +128,52 @@ class StatusEnum(enum.Enum):
     canceled = 'canceled'
 
 
+class PaymentMethodEnum(enum.Enum):
+    cash = 'cash'
+    card = 'card'
+
+
 order = Table(
     'order',
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('tracking_number', Text),
     Column('product_id', ForeignKey('product.id')),
     Column('user_id', ForeignKey('users.id')),
     Column('count', Integer),
     Column('ordered_at', TIMESTAMP, default=datetime.utcnow),
-    Column('status', Enum(StatusEnum))
+    Column('status', Enum(StatusEnum)),
+    Column('payment_method', Enum(PaymentMethodEnum)),
+    Column('shipping_address_id', ForeignKey('shipping_address.id')),
+    Column('delivery_method_id', ForeignKey('delivery_method.id')),
+    Column('user_card_id', ForeignKey('user_card.id'), nullable=True)
+)
+
+shipping_address = Table(
+    'shipping_address',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('user_id', ForeignKey('users.id')),
+    Column('shipping_address', Text)
+)
+
+delivery_method = Table(
+    'delivery_method',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('delivery_company', String),
+    Column('delivery_day', String),
+    Column('delivery_price', DECIMAL(precision=10, scale=2)),
+)
+
+user_card = Table(
+    'user_card',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('card_number', String),
+    Column('card_expiration', String),
+    Column('cvc', Integer),
+    Column('user_id', ForeignKey('users.id'))
 )
 
 review = Table(

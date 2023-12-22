@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import List
 
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, insert, update, delete
 from sqlalchemy.sql import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import NoResultFound
@@ -9,9 +9,10 @@ from fastapi import Depends, APIRouter, HTTPException
 
 from auth.utils import verify_token
 from database import get_async_session
+from schemas import ShippingAddressScheme, ShippingAddressGetScheme
 from .schemes import ProductScheme, MainProductScheme, RequestDataScheme, ProductForFilterScheme, CategorySchema, \
-    SizeScheme
-from models.models import product, category, subcategory, brand, product_sizes, size
+    SizeScheme, ShoppingSaveCartScheme, ShoppingCartScheme
+from models.models import product, category, subcategory, brand, product_sizes, size, shopping_cart, shipping_address
 
 mobile_router = APIRouter()
 
@@ -134,3 +135,105 @@ async def product_filter(
     product_datas = product__datas.all()
     print(product_datas)
     return product_datas
+
+
+@mobile_router.post('/shopping-cart')
+async def shopping_cart_data(
+        data: ShoppingSaveCartScheme,
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    query = select(shopping_cart).where((shopping_cart.c.user_id == token.get('user_id')) & (shopping_cart.c.product_id == data.product_id))
+    shopping__data = await session.execute(query)
+    try:
+        shopping_data = shopping__data.one()
+        if data.count == 0:
+            query3 = delete(shopping_cart).where(shopping_cart.c.id == shopping_data.id)
+            await session.execute(query3)
+            await session.commit()
+            return {'success': True, 'message': 'Product removed'}
+        count = shopping_data.count+1 if data.count is None else data.count
+        query3 = update(shopping_cart).where(shopping_cart.c.id == shopping_data.id).values(count=count)
+        await session.execute(query3)
+        await session.commit()
+    except NoResultFound:
+        count = 1 if data.count is None else data.count
+        query2 = insert(shopping_cart).values(user_id=token.get('user_id'), product_id=data.product_id, count=count)
+        await session.execute(query2)
+        await session.commit()
+    return {'success': True, 'message': 'Added to shopping cart'}
+
+
+@mobile_router.get('/shopping-cart', response_model=List[ShoppingCartScheme])
+async def get_shopping_cart(
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    query = select(shopping_cart).where(shopping_cart.c.user_id == token.get('user_id')).order_by('id')
+    shopping__data = await session.execute(query)
+    shopping_data = shopping__data.all()
+
+    shopping_list = []
+    for data in shopping_data:
+        query_product = select(product).where(product.c.id == data.product_id)
+        product__detail = await session.execute(query_product)
+        product_detail = product__detail.one()._asdict()
+        shopping_dict = {
+            'id': data.id,
+            'product': product_detail,
+            'count': data.count,
+            'added_at': data.added_at
+        }
+        shopping_list.append(shopping_dict)
+    return shopping_list
+
+
+@mobile_router.post('/shipping-address')
+async def post_shipping_address(
+        shipping_address_data: ShippingAddressScheme,
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    query = select(shipping_address).where(
+        (
+            shipping_address.c.shipping_address == shipping_address_data.shipping_address
+        ) &
+        (
+            shipping_address.c.user_id == token.get('user_id')
+        )
+    )
+    shipping__data = await session.execute(query)
+    shipping_data = shipping__data.one_or_none()
+    if shipping_data is None:
+        query2 = insert(shipping_address).values(
+            user_id=token.get('user_id'),
+            shipping_address=shipping_address_data.shipping_address
+        )
+        await session.execute(query2)
+        await session.commit()
+    else:
+        raise HTTPException(status_code=400, detail='Shipping address already exists!')
+    return {'success': True, 'message': 'Added shipping address'}
+
+
+@mobile_router.get('/shipping-address', response_model=List[ShippingAddressGetScheme])
+async def get_user_shipping_addresses(
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    query = select(shipping_address).where(shipping_address.c.user_id == token.get('user_id'))
+    user_shipping__data = await session.execute(query)
+    user_shipping_data = user_shipping__data.all()
+    return user_shipping_data

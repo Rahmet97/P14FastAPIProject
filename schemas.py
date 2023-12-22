@@ -35,8 +35,17 @@ class ProductListSchema(BaseModel):
 
 class OrderScheme(BaseModel):
     id: int
-    product_id: int
     user_id: int
-    count: int
+    tracking_number: str
     ordered_at: datetime
     status: str
+
+
+class ShippingAddressScheme(BaseModel):
+    shipping_address: str
+
+
+class ShippingAddressGetScheme(BaseModel):
+    id: int
+    shipping_address: str
+    user_id: int

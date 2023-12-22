@@ -13,7 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     DECIMAL,
     UniqueConstraint,
-    Enum
+    Enum, Float
 )
 from sqlalchemy.orm import relationship
 
@@ -86,7 +86,8 @@ users = Table(
     Column('username', String),
     Column('password', String),
     Column('is_superuser', Boolean, default=False),
-    Column('joined_at', TIMESTAMP, default=datetime.utcnow)
+    Column('joined_at', TIMESTAMP, default=datetime.utcnow),
+    Column('cash', Float, default=1000)
 )
 
 brand = Table(
@@ -133,14 +134,19 @@ class PaymentMethodEnum(enum.Enum):
     card = 'card'
 
 
+order_products = Table(
+    'order_products',
+    metadata,
+    Column('product_id', Integer, ForeignKey('product.id')),
+    Column('order_id', Integer, ForeignKey('order.id'))
+)
+
 order = Table(
     'order',
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('tracking_number', Text),
-    Column('product_id', ForeignKey('product.id')),
     Column('user_id', ForeignKey('users.id')),
-    Column('count', Integer),
     Column('ordered_at', TIMESTAMP, default=datetime.utcnow),
     Column('status', Enum(StatusEnum)),
     Column('payment_method', Enum(PaymentMethodEnum)),
@@ -184,4 +190,15 @@ review = Table(
     Column('user_id', ForeignKey('users.id'), nullable=True),
     Column('product_id', ForeignKey('product.id')),
     Column('reviewed_at', TIMESTAMP, default=datetime.utcnow)
+)
+
+shopping_cart = Table(
+    'shopping_cart',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('user_id', ForeignKey('users.id')),
+    Column('product_id', ForeignKey('product.id')),
+    Column('count', Integer, default=1),
+    Column('added_at', TIMESTAMP, default=datetime.utcnow),
+    UniqueConstraint('user_id', 'product_id', name='uniqueSC')
 )

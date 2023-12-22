@@ -182,6 +182,21 @@ async def order_list(
     return order_data
 
 
+@router.get('/order-detail/{order_id}', response_model=OrderScheme)
+async def order_detail_(
+        order_id: int,
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+    else:
+        query = select(order).where(order.c.id == order_id)
+    order__data = await session.execute(query)
+    order_data = order__data.one()
+    return order_data
+
+
 @router.post('/upload-file')
 async def upload_file(
         upload__file: UploadFile,

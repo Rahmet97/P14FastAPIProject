@@ -60,3 +60,15 @@ class RequestDataScheme(BaseModel):
 class SizeScheme(BaseModel):
     id: int
     size: str
+
+
+class ShoppingCartScheme(BaseModel):
+    id: int
+    product: dict
+    count: int
+    added_at: datetime
+
+
+class ShoppingSaveCartScheme(BaseModel):
+    product_id: int
+    count: int | None = Field(gte=0)

@@ -14,8 +14,9 @@ from sqlalchemy import insert, select, update, func
 from auth.schemas import UserRead
 from auth.utils import verify_token
 from database import get_async_session
-from models.models import category, subcategory, product, users, order, file
-from schemas import CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme, ProductListSchema, OrderScheme
+from models.models import category, subcategory, product, users, order, file, brand
+from schemas import CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme, ProductListSchema, OrderScheme, \
+    BrandScheme, CategorySchema, SubcategoryScheme
 from auth.auth import register_router
 from mobile.mobile import mobile_router
 
@@ -45,7 +46,7 @@ async def get_categories(token: dict = Depends(verify_token),
     return categories
 
 
-@router.get('/categories-filter', response_model=List[CategorySchemaCreate])
+@router.get('/categories-filter', response_model=List[CategorySchema])
 async def get_category_filter(
         token: dict = Depends(verify_token),
         session: AsyncSession = Depends(get_async_session)
@@ -56,6 +57,21 @@ async def get_category_filter(
     category__data = await session.execute(query)
     category_data = category__data.all()
     return category_data
+
+
+@router.get('/category-subcategories', response_model=List[SubcategoryScheme])
+async def get_subcategories(
+        category_id: int,
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    query = select(subcategory).where(subcategory.c.category_id == category_id)
+    subcategory__data = await session.execute(query)
+    subcategory_data = subcategory__data.all()
+    return subcategory_data
 
 
 @router.post('/category')
@@ -233,6 +249,24 @@ async def download_file(
     file_url = os.path.join(BASE_DIR, f'media/{file_data.file}')
     file_name = file_data.file.split('/')[-1]
     return FileResponse(path=file_url, media_type="application/octet-stream", filename=file_name)
+
+
+@router.get('/brands', response_model=List[BrandScheme])
+async def brand_list(token: dict = Depends(verify_token), session: AsyncSession = Depends(get_async_session)):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    query = select(brand)
+    brand__data = await session.execute(query)
+    brand_data = brand__data.all()
+    return brand_data
+
+
+# @router.post('/products')
+# async def add_product(
+#         new_product: 1
+# ):
+#     pass
 
 
 app.include_router(register_router)

@@ -19,6 +19,11 @@ class CategorySchemaCreate(BaseModel):
     name: str
 
 
+class CategorySchema(BaseModel):
+    id: int
+    name: str
+
+
 class CategoryScheme(BaseModel):
     id: int
     name: str
@@ -49,3 +54,12 @@ class ShippingAddressGetScheme(BaseModel):
     id: int
     shipping_address: str
     user_id: int
+
+
+class BrandScheme(BaseModel):
+    id: int
+    name: str
+
+
+class ProductAddScheme(BaseModel):
+    pass

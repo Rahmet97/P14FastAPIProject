@@ -37,7 +37,7 @@ color = Table(
     'color',
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
-    Column('name', String)
+    Column('code', String(length=7))
 )
 
 size = Table(

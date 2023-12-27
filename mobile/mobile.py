@@ -11,8 +11,10 @@ from auth.utils import verify_token
 from database import get_async_session
 from schemas import ShippingAddressScheme, ShippingAddressGetScheme
 from .schemes import ProductScheme, MainProductScheme, RequestDataScheme, ProductForFilterScheme, CategorySchema, \
-    SizeScheme, ShoppingSaveCartScheme, ShoppingCartScheme
-from models.models import product, category, subcategory, brand, product_sizes, size, shopping_cart, shipping_address
+    SizeScheme, ShoppingSaveCartScheme, ShoppingCartScheme, UserCardScheme, CardScheme
+from models.models import product, category, subcategory, brand, product_sizes, size, shopping_cart, shipping_address, \
+    bank_card
+from .utils import step_3, collect_to_list
 
 mobile_router = APIRouter()
 
@@ -237,3 +239,42 @@ async def get_user_shipping_addresses(
     user_shipping__data = await session.execute(query)
     user_shipping_data = user_shipping__data.all()
     return user_shipping_data
+
+
+@mobile_router.post('/add-card')
+async def add_card(
+        card_detail: UserCardScheme,
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    card_number = step_3(card_detail.card_number)
+    query = select(bank_card).where(bank_card.c.card_number == card_number)
+    card__data = await session.execute(query)
+    card_data = card__data.one_or_none()
+    if card_data:
+        raise HTTPException(status_code=400, detail='Card already exists!')
+    else:
+        query2 = insert(bank_card).values(
+            card_number=card_number,
+            card_expiration=card_detail.card_expiration,
+            card_cvc=card_detail.card_cvc,
+            user_id=token.get('user_id')
+        )
+        await session.execute(query2)
+        await session.commit()
+    return {'success': True, 'message': 'Successfully added'}
+
+
+@mobile_router.get('/user-cards', response_model=List[CardScheme])
+async def get_user_cards(
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    query = select(bank_card).where(bank_card.c.user_id == token.get('user_id'))
+    card__data = await session.execute(query)
+    card_data = card__data.all()
+    cards_data = collect_to_list(card_data)
+    return cards_data

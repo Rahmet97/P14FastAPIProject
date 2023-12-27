@@ -62,4 +62,32 @@ class BrandScheme(BaseModel):
 
 
 class ProductAddScheme(BaseModel):
-    pass
+    brand_id: int
+    name: str
+    price: float
+    discount_percent: int
+    quantity: int
+    description: str
+    category_id: int
+    subcategory_id: int
+    category: str
+    sizes: List[int]
+    colors: List[int]
+
+
+class AddColor(BaseModel):
+    code: str
+
+
+class SizeSchema(BaseModel):
+    size: str
+    category_id: int
+
+
+class BrandAddSchema(BaseModel):
+    name: str
+
+
+class ColorListSchema(BaseModel):
+    id: int
+    code: str

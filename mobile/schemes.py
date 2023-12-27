@@ -3,6 +3,7 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
+from mobile.utils import decode_card_number
 from schemas import SubcategoryScheme
 
 
@@ -72,3 +73,15 @@ class ShoppingCartScheme(BaseModel):
 class ShoppingSaveCartScheme(BaseModel):
     product_id: int
     count: int | None = Field(gte=0)
+
+
+class UserCardScheme(BaseModel):
+    card_number: str = Field(max_length=16, min_length=16)
+    card_expiration: str = Field(max_length=4, min_length=4)
+    card_cvc: str | None = None
+
+
+class CardScheme(BaseModel):
+    id: int
+    card_number: str
+    card_expiration: str

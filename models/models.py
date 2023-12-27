@@ -65,7 +65,7 @@ product = Table(
     Column('discount_percent', Integer, default=0),
     Column('quantity', Integer),
     Column('created_at', TIMESTAMP, default=datetime.utcnow),
-    Column('sold_quantity', Integer),
+    Column('sold_quantity', Integer, default=0),
     Column('description', Text),
     Column('category_id', ForeignKey('category.id')),
     Column('subcategory_id', ForeignKey('subcategory.id')),
@@ -201,4 +201,15 @@ shopping_cart = Table(
     Column('count', Integer, default=1),
     Column('added_at', TIMESTAMP, default=datetime.utcnow),
     UniqueConstraint('user_id', 'product_id', name='uniqueSC')
+)
+
+bank_card = Table(
+    'bank_card',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('card_number', String(length=32)),
+    Column('card_expiration', String(length=4)),
+    Column('card_cvc', String(length=3), nullable=True),
+    Column('user_id', ForeignKey('users.id')),
+    Column('token', String, nullable=True)
 )

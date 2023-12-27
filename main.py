@@ -14,9 +14,11 @@ from sqlalchemy import insert, select, update, func
 from auth.schemas import UserRead
 from auth.utils import verify_token
 from database import get_async_session
-from models.models import category, subcategory, product, users, order, file, brand
+from models.models import category, subcategory, product, users, order, file, brand, product_sizes, product_colors, \
+    color, size
 from schemas import CategorySchemaCreate, SubcategorySchemaCreate, CategoryScheme, ProductListSchema, OrderScheme, \
-    BrandScheme, CategorySchema, SubcategoryScheme
+    BrandScheme, CategorySchema, SubcategoryScheme, ProductAddScheme, ColorListSchema, BrandAddSchema, SizeSchema, \
+    AddColor
 from auth.auth import register_router
 from mobile.mobile import mobile_router
 
@@ -262,11 +264,119 @@ async def brand_list(token: dict = Depends(verify_token), session: AsyncSession 
     return brand_data
 
 
-# @router.post('/products')
-# async def add_product(
-#         new_product: 1
-# ):
-#     pass
+@router.post('/products')
+async def add_product(
+        new_product: ProductAddScheme,
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    query = insert(product).values(
+        brand_id=new_product.brand_id,
+        name=new_product.name,
+        price=new_product.price,
+        discount_percent=new_product.discount_percent,
+        quantity=new_product.quantity,
+        description=new_product.description,
+        category_id=new_product.category_id,
+        subcategory_id=new_product.subcategory_id,
+        category=new_product.category
+    ).returning(product.c.id)
+    product__data = await session.execute(query)
+    await session.commit()
+    product_data = product__data.fetchone()
+    product_id = product_data[0]
+
+    for size in new_product.sizes:
+        insert_query = insert(product_sizes).values(
+            product_id=product_id,
+            size=size
+        )
+        await session.execute(insert_query)
+        await session.commit()
+
+    for color in new_product.colors:
+        insert_query = insert(product_colors).values(
+            product_id=product_id,
+            color=color
+        )
+        await session.execute(insert_query)
+        await session.commit()
+
+    return {'success': True, 'message': 'Added'}
+
+
+@router.post('/add-color')
+async def add_color(new_color: AddColor, token: dict = Depends(verify_token),
+                    session: AsyncSession = Depends(get_async_session)):
+    if not token:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    query = select(color).where(color.c.code == new_color.code)
+    result = await session.execute(query)
+    existing_color = result.first()
+
+    if existing_color:
+        raise HTTPException(status_code=400, detail='Color already exists')
+
+    query1 = insert(color).values(code=new_color.code)
+    await session.execute(query1)
+    await session.commit()
+
+    return {"message": "Color added successfully", "status_code": 201}
+
+
+@router.post('/add-size')
+async def add_size(new_size: SizeSchema, token: dict = Depends(verify_token),
+                   session: AsyncSession = Depends(get_async_session)):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+
+    query = select(size).where((size.c.size == new_size.size) & (size.c.category_id == new_size.category_id))
+    test__size = await session.execute(query)
+    test_size = test__size.one_or_none()
+    if test_size is not None:
+        return {'success': False, 'message': 'Size already added!!!'}
+    query1 = insert(size).values(**dict(new_size))
+    await session.execute(query1)
+    await session.commit()
+
+    return {'success': True, 'message': 'Size added successfully!!!'}
+
+
+@router.post('/brand')
+async def add_brand(
+        new_brand=BrandAddSchema,
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session)
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+    try:
+        query = select(brand).where(brand.c.name == new_brand)
+        brand_result = await session.execute(query)
+        if brand_result is None:
+            query = insert(brand).values(name=new_brand)
+            await session.execute(query)
+            await session.commit()
+            return {'success': True}
+        else:
+            return {'success': False}
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail='Brand already exists!')
+
+
+@router.get('/colors', response_model=List[ColorListSchema])
+async def color_list(token: dict = Depends(verify_token), session: AsyncSession = Depends(get_async_session)):
+    if token is None:
+        raise HTTPException(status_code=404, detail='Forbidden')
+    else:
+        query = select(color).order_by('id')
+    color__data = await session.execute(query)
+    color_data = color__data.all()
+    return color_data
 
 
 app.include_router(register_router)

@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
+from sqlalchemy import TIMESTAMP
 
 
 class User(BaseModel):
@@ -17,6 +20,7 @@ class UserInDB(BaseModel):
     email: str
     phone: str
     username: str
+    joined_at: datetime
     password: str = Field(required=False)
 
 
@@ -31,3 +35,10 @@ class UserInfo(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+
+
+class UserRead(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+    joined_at: datetime

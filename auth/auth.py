@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from .schemas import UserInfo, User, UserInDB, UserLogin
 from database import get_async_session
 
@@ -25,7 +27,7 @@ async def register(user: User, session: AsyncSession = Depends(get_async_session
         if not select(users).where(users.c.email == user.email).exists:
             return {'success': False, 'message': 'Email already exists!'}
         password = pwd_context.hash(user.password1)
-        user_in_db = UserInDB(**dict(user), password=password)
+        user_in_db = UserInDB(**dict(user), password=password, joined_at=datetime.utcnow())
         query = insert(users).values(**dict(user_in_db))
         await session.execute(query)
         await session.commit()

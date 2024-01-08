@@ -13,7 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     DECIMAL,
     UniqueConstraint,
-    Enum
+    Enum, Float
 )
 from sqlalchemy.orm import relationship
 
@@ -37,14 +37,15 @@ color = Table(
     'color',
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
-    Column('name', String)
+    Column('code', String(length=7))
 )
 
 size = Table(
     'size',
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
-    Column('size', String)
+    Column('size', String),
+    Column('category_id', ForeignKey('category.id'))
 )
 
 
@@ -64,7 +65,7 @@ product = Table(
     Column('discount_percent', Integer, default=0),
     Column('quantity', Integer),
     Column('created_at', TIMESTAMP, default=datetime.utcnow),
-    Column('sold_quantity', Integer),
+    Column('sold_quantity', Integer, default=0),
     Column('description', Text),
     Column('category_id', ForeignKey('category.id')),
     Column('subcategory_id', ForeignKey('subcategory.id')),
@@ -84,7 +85,9 @@ users = Table(
     Column('phone', String),
     Column('username', String),
     Column('password', String),
-    Column('is_superuser', Boolean, default=False)
+    Column('is_superuser', Boolean, default=False),
+    Column('joined_at', TIMESTAMP, default=datetime.utcnow),
+    Column('cash', Float, default=1000)
 )
 
 brand = Table(
@@ -99,7 +102,8 @@ file = Table(
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('file', String),
-    Column('product_id', ForeignKey('product.id'))
+    Column('product_id', ForeignKey('product.id')),
+    Column('hash', String, unique=True)
 )
 
 category = Table(
@@ -125,15 +129,57 @@ class StatusEnum(enum.Enum):
     canceled = 'canceled'
 
 
+class PaymentMethodEnum(enum.Enum):
+    cash = 'cash'
+    card = 'card'
+
+
+order_products = Table(
+    'order_products',
+    metadata,
+    Column('product_id', Integer, ForeignKey('product.id')),
+    Column('order_id', Integer, ForeignKey('order.id'))
+)
+
 order = Table(
     'order',
     metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
-    Column('product_id', ForeignKey('product.id')),
+    Column('tracking_number', Text),
     Column('user_id', ForeignKey('users.id')),
-    Column('count', Integer),
     Column('ordered_at', TIMESTAMP, default=datetime.utcnow),
-    Column('status', Enum(StatusEnum))
+    Column('status', Enum(StatusEnum)),
+    Column('payment_method', Enum(PaymentMethodEnum)),
+    Column('shipping_address_id', ForeignKey('shipping_address.id')),
+    Column('delivery_method_id', ForeignKey('delivery_method.id')),
+    Column('user_card_id', ForeignKey('user_card.id'), nullable=True)
+)
+
+shipping_address = Table(
+    'shipping_address',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('user_id', ForeignKey('users.id')),
+    Column('shipping_address', Text)
+)
+
+delivery_method = Table(
+    'delivery_method',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('delivery_company', String),
+    Column('delivery_day', String),
+    Column('delivery_price', DECIMAL(precision=10, scale=2)),
+)
+
+user_card = Table(
+    'user_card',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('card_number', String),
+    Column('card_expiration', String),
+    Column('cvc', Integer),
+    Column('user_id', ForeignKey('users.id'))
 )
 
 review = Table(
@@ -144,4 +190,26 @@ review = Table(
     Column('user_id', ForeignKey('users.id'), nullable=True),
     Column('product_id', ForeignKey('product.id')),
     Column('reviewed_at', TIMESTAMP, default=datetime.utcnow)
+)
+
+shopping_cart = Table(
+    'shopping_cart',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('user_id', ForeignKey('users.id')),
+    Column('product_id', ForeignKey('product.id')),
+    Column('count', Integer, default=1),
+    Column('added_at', TIMESTAMP, default=datetime.utcnow),
+    UniqueConstraint('user_id', 'product_id', name='uniqueSC')
+)
+
+bank_card = Table(
+    'bank_card',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('card_number', String(length=32)),
+    Column('card_expiration', String(length=4)),
+    Column('card_cvc', String(length=3), nullable=True),
+    Column('user_id', ForeignKey('users.id')),
+    Column('token', String, nullable=True)
 )

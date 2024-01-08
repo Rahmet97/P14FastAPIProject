@@ -1,8 +1,8 @@
-"""Payment method added to order
+"""review image added
 
-Revision ID: cd4bc4f2052b
+Revision ID: d94c3cffee4b
 Revises: 
-Create Date: 2023-12-20 11:45:57.576278
+Create Date: 2024-01-08 16:34:01.012926
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'cd4bc4f2052b'
+revision = 'd94c3cffee4b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -30,7 +30,7 @@ def upgrade() -> None:
     )
     op.create_table('color',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('name', sa.String(), nullable=True),
+    sa.Column('code', sa.String(length=7), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('delivery_method',
@@ -50,6 +50,17 @@ def upgrade() -> None:
     sa.Column('password', sa.String(), nullable=True),
     sa.Column('is_superuser', sa.Boolean(), nullable=True),
     sa.Column('joined_at', sa.TIMESTAMP(), nullable=True),
+    sa.Column('cash', sa.Float(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('bank_card',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('card_number', sa.String(length=32), nullable=True),
+    sa.Column('card_expiration', sa.String(length=4), nullable=True),
+    sa.Column('card_cvc', sa.String(length=3), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('token', sa.String(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('shipping_address',
@@ -83,6 +94,22 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('order',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('tracking_number', sa.Text(), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('ordered_at', sa.TIMESTAMP(), nullable=True),
+    sa.Column('status', sa.Enum('delivered', 'processing', 'canceled', name='statusenum'), nullable=True),
+    sa.Column('payment_method', sa.Enum('cash', 'card', name='paymentmethodenum'), nullable=True),
+    sa.Column('shipping_address_id', sa.Integer(), nullable=True),
+    sa.Column('delivery_method_id', sa.Integer(), nullable=True),
+    sa.Column('user_card_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['delivery_method_id'], ['delivery_method.id'], ),
+    sa.ForeignKeyConstraint(['shipping_address_id'], ['shipping_address.id'], ),
+    sa.ForeignKeyConstraint(['user_card_id'], ['user_card.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('product',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('brand_id', sa.Integer(), nullable=True),
@@ -105,27 +132,16 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('file', sa.String(), nullable=True),
     sa.Column('product_id', sa.Integer(), nullable=True),
+    sa.Column('hash', sa.String(), nullable=True),
     sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('hash')
     )
-    op.create_table('order',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('tracking_number', sa.Text(), nullable=True),
+    op.create_table('order_products',
     sa.Column('product_id', sa.Integer(), nullable=True),
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('count', sa.Integer(), nullable=True),
-    sa.Column('ordered_at', sa.TIMESTAMP(), nullable=True),
-    sa.Column('status', sa.Enum('delivered', 'processing', 'canceled', name='statusenum'), nullable=True),
-    sa.Column('payment_method', sa.Enum('cash', 'card', name='paymentmethodenum'), nullable=True),
-    sa.Column('shipping_address_id', sa.Integer(), nullable=True),
-    sa.Column('delivery_method_id', sa.Integer(), nullable=True),
-    sa.Column('user_card_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['delivery_method_id'], ['delivery_method.id'], ),
-    sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
-    sa.ForeignKeyConstraint(['shipping_address_id'], ['shipping_address.id'], ),
-    sa.ForeignKeyConstraint(['user_card_id'], ['user_card.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.Column('order_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['order_id'], ['order.id'], ),
+    sa.ForeignKeyConstraint(['product_id'], ['product.id'], )
     )
     op.create_table('product_colors',
     sa.Column('product_id', sa.Integer(), nullable=True),
@@ -149,21 +165,43 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('shopping_cart',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('product_id', sa.Integer(), nullable=True),
+    sa.Column('count', sa.Integer(), nullable=True),
+    sa.Column('added_at', sa.TIMESTAMP(), nullable=True),
+    sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'product_id', name='uniqueSC')
+    )
+    op.create_table('image_review',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('image', sa.String(), nullable=True),
+    sa.Column('review_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['review_id'], ['review.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('image_review')
+    op.drop_table('shopping_cart')
     op.drop_table('review')
     op.drop_table('product_sizes')
     op.drop_table('product_colors')
-    op.drop_table('order')
+    op.drop_table('order_products')
     op.drop_table('file')
     op.drop_table('product')
+    op.drop_table('order')
     op.drop_table('user_card')
     op.drop_table('subcategory')
     op.drop_table('size')
     op.drop_table('shipping_address')
+    op.drop_table('bank_card')
     op.drop_table('users')
     op.drop_table('delivery_method')
     op.drop_table('color')

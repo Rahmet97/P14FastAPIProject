@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List
 
 from decimal import Decimal
+from fastapi import UploadFile
 
 from pydantic import BaseModel, Field
 
@@ -58,6 +59,7 @@ class SubCategoryProductScheme(BaseModel):
     price: float
     description: str
 
+
 class RequestDataScheme(BaseModel):
     min: float | None
     max: float | None
@@ -94,3 +96,8 @@ class CardScheme(BaseModel):
     card_number: str
     card_expiration: str
 
+
+class ReviewScheme(BaseModel):
+    star: int
+    review: str
+    product_id: int

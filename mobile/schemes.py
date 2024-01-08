@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import List
 
+from decimal import Decimal
+
 from pydantic import BaseModel, Field
 
 from mobile.utils import decode_card_number
@@ -50,6 +52,12 @@ class MainProductScheme(BaseModel):
     products: List[ProductScheme]
 
 
+class SubCategoryProductScheme(BaseModel):
+    name: str
+    brand: dict
+    price: float
+    description: str
+
 class RequestDataScheme(BaseModel):
     min: float | None
     max: float | None
@@ -85,3 +93,4 @@ class CardScheme(BaseModel):
     id: int
     card_number: str
     card_expiration: str
+

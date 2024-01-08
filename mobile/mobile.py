@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import List
 
 from sqlalchemy import select, and_, insert, update, delete
@@ -9,6 +9,8 @@ from fastapi import Depends, APIRouter, HTTPException
 
 from auth.utils import verify_token
 from database import get_async_session
+from .schemes import ProductScheme, MainProductScheme, SubCategoryProductScheme
+from models.models import product, category, subcategory, brand
 from schemas import ShippingAddressScheme, ShippingAddressGetScheme
 from .schemes import ProductScheme, MainProductScheme, RequestDataScheme, ProductForFilterScheme, CategorySchema, \
     SizeScheme, ShoppingSaveCartScheme, ShoppingCartScheme, UserCardScheme, CardScheme
@@ -83,6 +85,66 @@ async def product_detail(
     except NoResultFound:
         raise HTTPException(status_code=404, detail='Product not found!')
 
+
+@mobile_router.get('/subcategory_products_sort/{subcategory_id}', response_model=List[SubCategoryProductScheme])
+async def get_subcategory_products(
+        subcategory_id: int, keyword: str,
+        session: AsyncSession = Depends(get_async_session)):
+    lowest_price_query = (
+        select(product).where(product.c.subcategory_id == subcategory_id).order_by(product.c.price))
+    product__data = await session.execute(lowest_price_query)
+    product_data = []
+    try:
+        for data in product__data.all():
+            data = data._asdict()
+            brand_query = select(brand).where(brand.c.id == data.get('brand_id'))
+            brand__data = await session.execute(brand_query)
+            data['brand'] = brand__data.one()._asdict()
+            product_data.append(data)
+    except NoResultFound:
+        raise HTTPException(status_code=404, detail='Product not found')
+    if keyword == 'lth':
+        return product_data
+    elif keyword == 'htl':
+        return product_data[::-1]
+    elif keyword == 'nst':
+        query_products = select(product).where(product.c.subcategory_id == subcategory_id).where(
+            product.c.created_at >= func.current_timestamp() - timedelta(days=3))
+        products = await session.execute(query_products)
+        products_data = []
+        try:
+            for data in products.all():
+                data = data._asdict()
+                brand_query = select(brand).where(brand.c.id == data.get('brand_id'))
+                brand__data = await session.execute(brand_query)
+                data['brand'] = brand__data.one()._asdict()
+                products_data.append(data)
+                print(products_data)
+            return products_data
+        except NoResultFound:
+            raise HTTPException(status_code=404, detail='Product not found')
+    else:
+        raise HTTPException(status_code=404, detail="Keyword not found")
+
+
+@mobile_router.get('/subcategory_products/{subcategory_id}', response_model=List[SubCategoryProductScheme])
+async def get_subcategory_products(
+        subcategory_id: int,
+        session: AsyncSession = Depends(get_async_session)):
+    query = (
+        select(product).where(product.c.subcategory_id == subcategory_id))
+    product__data = await session.execute(query)
+    product_data = []
+    try:
+        for data in product__data.all():
+            data = data._asdict()
+            brand_query = select(brand).where(brand.c.id == data.get('brand_id'))
+            brand__data = await session.execute(brand_query)
+            data['brand'] = brand__data.one()._asdict()
+            product_data.append(data)
+        return product_data
+    except NoResultFound:
+        raise HTTPException(status_code=404, detail='Product not found')
 
 @mobile_router.get('/categories', response_model=List[CategorySchema])
 async def get_category_filter(

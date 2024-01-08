@@ -189,7 +189,16 @@ review = Table(
     Column('message', Text),
     Column('user_id', ForeignKey('users.id'), nullable=True),
     Column('product_id', ForeignKey('product.id')),
+    Column('star', Integer),
     Column('reviewed_at', TIMESTAMP, default=datetime.utcnow)
+)
+
+image = Table(
+    'image_review',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('image', String),
+    Column('review_id', Integer, ForeignKey('review.id'))
 )
 
 shopping_cart = Table(

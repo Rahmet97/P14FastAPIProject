@@ -1,19 +1,22 @@
+import secrets
 from datetime import timedelta, datetime
 from typing import List
 
+import aiofiles
+from starlette import status
 from sqlalchemy import select, and_, insert, update, delete
 from sqlalchemy.sql import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import NoResultFound
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException, UploadFile
 
 from auth.utils import verify_token
 from database import get_async_session
 from .schemes import ProductScheme, MainProductScheme, SubCategoryProductScheme
-from models.models import product, category, subcategory, brand
+from models.models import product, category, subcategory, brand, review, image
 from schemas import ShippingAddressScheme, ShippingAddressGetScheme
 from .schemes import ProductScheme, MainProductScheme, RequestDataScheme, ProductForFilterScheme, CategorySchema, \
-    SizeScheme, ShoppingSaveCartScheme, ShoppingCartScheme, UserCardScheme, CardScheme
+    SizeScheme, ShoppingSaveCartScheme, ShoppingCartScheme, UserCardScheme, CardScheme, ReviewScheme
 from models.models import product, category, subcategory, brand, product_sizes, size, shopping_cart, shipping_address, \
     bank_card
 from .utils import step_3, collect_to_list
@@ -146,6 +149,7 @@ async def get_subcategory_products(
     except NoResultFound:
         raise HTTPException(status_code=404, detail='Product not found')
 
+
 @mobile_router.get('/categories', response_model=List[CategorySchema])
 async def get_category_filter(
         session: AsyncSession = Depends(get_async_session)
@@ -172,7 +176,8 @@ async def product_filter(
     query = select(product)
     if request_data.min is not None and request_data.max is not None:
         if request_data.min <= request_data.max:
-            query = query.where(and_(product.c.price >= request_data.min, product.c.price <= request_data.max)).order_by('id')
+            query = query.where(
+                and_(product.c.price >= request_data.min, product.c.price <= request_data.max)).order_by('id')
         else:
             raise HTTPException(status_code=400, detail="Min price should be less than or equal to max price.")
 
@@ -210,7 +215,8 @@ async def shopping_cart_data(
     if token is None:
         raise HTTPException(status_code=403, detail='Forbidden')
 
-    query = select(shopping_cart).where((shopping_cart.c.user_id == token.get('user_id')) & (shopping_cart.c.product_id == data.product_id))
+    query = select(shopping_cart).where(
+        (shopping_cart.c.user_id == token.get('user_id')) & (shopping_cart.c.product_id == data.product_id))
     shopping__data = await session.execute(query)
     try:
         shopping_data = shopping__data.one()
@@ -219,7 +225,7 @@ async def shopping_cart_data(
             await session.execute(query3)
             await session.commit()
             return {'success': True, 'message': 'Product removed'}
-        count = shopping_data.count+1 if data.count is None else data.count
+        count = shopping_data.count + 1 if data.count is None else data.count
         query3 = update(shopping_cart).where(shopping_cart.c.id == shopping_data.id).values(count=count)
         await session.execute(query3)
         await session.commit()
@@ -269,10 +275,10 @@ async def post_shipping_address(
 
     query = select(shipping_address).where(
         (
-            shipping_address.c.shipping_address == shipping_address_data.shipping_address
+                shipping_address.c.shipping_address == shipping_address_data.shipping_address
         ) &
         (
-            shipping_address.c.user_id == token.get('user_id')
+                shipping_address.c.user_id == token.get('user_id')
         )
     )
     shipping__data = await session.execute(query)
@@ -340,3 +346,40 @@ async def get_user_cards(
     card_data = card__data.all()
     cards_data = collect_to_list(card_data)
     return cards_data
+
+
+@mobile_router.post('/review')
+async def product_review(
+        image_data: UploadFile,
+        token: dict = Depends(verify_token),
+        session: AsyncSession = Depends(get_async_session),
+        review_data: ReviewScheme = Depends(),
+):
+    if token is None:
+        raise HTTPException(status_code=403, detail='Forbidden')
+    user_id = token.get('user_id')
+    try:
+        out_file = f'images/{image_data.filename}'
+        async with aiofiles.open(f'media/{out_file}', 'wb') as f:
+            content = await image_data.read()
+            await f.write(content)
+
+        insert_review_query = insert(review).values(
+            message=review_data.review,
+            user_id=user_id,
+            star=review_data.star,
+            product_id=review_data.product_id,
+        )
+
+        review_result = await session.execute(insert_review_query)
+        review_id = review_result.scalars().first()
+
+        insert_image_review_query = insert(image).values(
+            image=out_file,
+            review_id=review_id,
+        )
+        await session.execute(insert_image_review_query)
+        await session.commit()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {'success': True, 'message': 'Reviewed !!!'}

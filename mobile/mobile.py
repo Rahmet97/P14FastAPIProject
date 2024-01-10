@@ -369,10 +369,10 @@ async def product_review(
             user_id=user_id,
             star=review_data.star,
             product_id=review_data.product_id,
-        )
+        ).returning(review.c.id)
 
         review_result = await session.execute(insert_review_query)
-        review_id = review_result.scalars().first()
+        review_id = review_result.scalar()
 
         insert_image_review_query = insert(image).values(
             image=out_file,

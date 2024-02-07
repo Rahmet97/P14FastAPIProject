@@ -9,16 +9,20 @@ from sqlalchemy.sql import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import NoResultFound
 from fastapi import Depends, APIRouter, HTTPException, UploadFile
+from starlette.responses import JSONResponse
 
 from auth.utils import verify_token
 from database import get_async_session
-from .schemes import ProductScheme, MainProductScheme, SubCategoryProductScheme
-from models.models import product, category, subcategory, brand, review, image
+from .schemes import (
+    ProductScheme, MainProductScheme, RequestDataScheme,
+    ProductForFilterScheme, CategorySchema,
+    SizeScheme, ShoppingSaveCartScheme, ShoppingCartScheme,
+    UserCardScheme, CardScheme, ReviewScheme,
+    SubCategoryProductScheme,
+)
 from schemas import ShippingAddressScheme, ShippingAddressGetScheme
-from .schemes import ProductScheme, MainProductScheme, RequestDataScheme, ProductForFilterScheme, CategorySchema, \
-    SizeScheme, ShoppingSaveCartScheme, ShoppingCartScheme, UserCardScheme, CardScheme, ReviewScheme
 from models.models import product, category, subcategory, brand, product_sizes, size, shopping_cart, shipping_address, \
-    bank_card
+    bank_card, review, image, like, product_view
 from .utils import step_3, collect_to_list
 
 mobile_router = APIRouter()
@@ -84,6 +88,9 @@ async def product_detail(
         brand__data = await session.execute(brand_query)
         product_data['subcategory'] = subcategory__data.one()._asdict()
         product_data['brand'] = brand__data.one()._asdict()
+        increase_view_product_query = insert(product_view).values(product_id=product_id)
+        await session.execute(increase_view_product_query)
+        await session.commit()
         return product_data
     except NoResultFound:
         raise HTTPException(status_code=404, detail='Product not found!')
@@ -383,3 +390,79 @@ async def product_review(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {'success': True, 'message': 'Reviewed !!!'}
+
+
+@mobile_router.post('/like/{product_id}')
+async def like_product(
+        product_id: int,
+        session: AsyncSession = Depends(get_async_session),
+        token: dict = Depends(verify_token)
+):
+    if token is None:
+        raise HTTPException(detail='Unauthorized', status_code=status.HTTP_401_UNAUTHORIZED)
+
+    user_id = token.get('user_id')
+
+    try:
+        check_product_query = select(product).where(product.c.id == product_id)
+        product__data = await session.execute(check_product_query)
+        product_data = product__data.one_or_none()
+
+        if product_data is None:
+            raise HTTPException(detail='Product not found', status_code=status.HTTP_404_NOT_FOUND)
+
+        insert_like_query = insert(like).values(
+            user_id=user_id,
+            product_id=product_id
+        )
+        await session.execute(insert_like_query)
+        await session.commit()
+        return {"status_code": status.HTTP_201_CREATED, "detail": 'Product liked successfully', "success": True}
+    except Exception as e:
+        raise HTTPException(detail=f'{e}', status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@mobile_router.delete('/unlike/{product_id}')
+async def unlike_product(
+        product_id: int,
+        session: AsyncSession = Depends(get_async_session),
+        token: dict = Depends(verify_token)
+):
+    if token is None:
+        raise HTTPException(detail='Unauthorized', status_code=status.HTTP_401_UNAUTHORIZED)
+
+    user_id = token.get('user_id')
+
+    try:
+        check_product_query = select(product).where(product.c.id == product_id)
+        product__data = await session.execute(check_product_query)
+        product_data = product__data.one_or_none()
+
+        if product_data is None:
+            raise HTTPException(detail='Product not found', status_code=status.HTTP_404_NOT_FOUND)
+
+        delete_like_query = delete(like).where(
+            (like.c.user_id == user_id),
+            (like.c.product_id == product_id)
+        )
+        await session.execute(delete_like_query)
+        await session.commit()
+        return {"status_code": status.HTTP_204_NO_CONTENT, "detail": 'Product unliked successfully', "success": True}
+    except Exception as e:
+        raise HTTPException(detail=f'{e}', status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@mobile_router.get('/get-views-product/{product_id}')
+async def get_views_single_product(
+        product_id: int,
+        session: AsyncSession = Depends(get_async_session)
+):
+    try:
+        select_query = select(product_view).where(product_view.c.product_id == product_id)
+        product__data = await session.execute(select_query)
+        product_data = product__data.fetchall()
+        if product_data is None:
+            raise HTTPException(detail='Product not viewed yet.', status_code=status.HTTP_204_NO_CONTENT)
+        return {"views": len(product_data)}
+    except Exception as e:
+        raise HTTPException(detail=f'{e}', status_code=status.HTTP_400_BAD_REQUEST)

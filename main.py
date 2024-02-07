@@ -379,7 +379,7 @@ async def color_list(token: dict = Depends(verify_token), session: AsyncSession 
     return color_data
 
 
-app.include_router(register_router)
+app.include_router(register_router, prefix='/accounts')
 app.include_router(router)
 app.include_router(mobile_router, prefix='/mobile')
-app.mount('/media', StaticFiles(directory='media'),'files')
+app.mount('/media', StaticFiles(directory='media'), 'files')

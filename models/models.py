@@ -222,3 +222,20 @@ bank_card = Table(
     Column('user_id', ForeignKey('users.id')),
     Column('token', String, nullable=True)
 )
+
+like = Table(
+    'user_like',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('like', Integer, default=1),
+    Column('user_id', Integer, ForeignKey('users.id')),
+    Column('product_id', Integer, ForeignKey('product.id')),
+    Column('liked_at', TIMESTAMP, default=datetime.utcnow)
+)
+
+product_view = Table(
+    'product_view',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('product_id', Integer, ForeignKey('product.id'))
+)

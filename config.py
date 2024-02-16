@@ -3,11 +3,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_NAME = os.environ.get('DB_NAME')
-DB_USER = os.environ.get('DB_USER')
-DB_PASSWORD = os.environ.get('DB_PASSWORD')
-DB_HOST = os.environ.get('DB_HOST')
-DB_PORT = os.environ.get('DB_PORT')
+POSTGRES_DB = os.environ.get('POSTGRES_DB')
+POSTGRES_USER = os.environ.get('POSTGRES_USER')
+POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
+POSTGRES_HOST = os.environ.get('POSTGRES_HOST')
+POSTGRES_PORT = os.environ.get('POSTGRES_PORT')
 SECRET = os.environ.get('SECRET')
 MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
 MAIL_FROM = os.environ.get('MAIL_FROM')

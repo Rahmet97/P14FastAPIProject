@@ -82,7 +82,7 @@ class ShoppingCartScheme(BaseModel):
 
 class ShoppingSaveCartScheme(BaseModel):
     product_id: int
-    count: int | None = Field(gte=0)
+    count: Union[int, None] = Field(gte=0)
 
 
 class UserCardScheme(BaseModel):

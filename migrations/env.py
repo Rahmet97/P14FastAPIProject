@@ -12,11 +12,11 @@ from models.models import metadata
 config = context.config
 
 section = config.config_ini_section
-config.set_section_option(section, 'DB_NAME', POSTGRES_DB)
-config.set_section_option(section, 'DB_USER', POSTGRES_USER)
-config.set_section_option(section, 'DB_PASSWORD', POSTGRES_PASSWORD)
-config.set_section_option(section, 'DB_HOST', POSTGRES_HOST)
-config.set_section_option(section, 'DB_PORT', POSTGRES_PORT)
+config.set_section_option(section, 'POSTGRES_DB', POSTGRES_DB)
+config.set_section_option(section, 'POSTGRES_USER', POSTGRES_USER)
+config.set_section_option(section, 'POSTGRES_PASSWORD', POSTGRES_PASSWORD)
+config.set_section_option(section, 'POSTGRES_HOST', POSTGRES_HOST)
+config.set_section_option(section, 'POSTGRES_PORT', POSTGRES_PORT)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

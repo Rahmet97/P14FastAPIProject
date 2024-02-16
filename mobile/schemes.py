@@ -61,10 +61,10 @@ class SubCategoryProductScheme(BaseModel):
 
 
 class RequestDataScheme(BaseModel):
-    min: float | None
-    max: float | None
+    min: Union[float, None]
+    max: Union[float, None]
     sizes: List[int] | None
-    category: str | None
+    category: Union[str, None]
     brands: List[int] | None
 
 

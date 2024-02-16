@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Union
 
 from decimal import Decimal
 from fastapi import UploadFile

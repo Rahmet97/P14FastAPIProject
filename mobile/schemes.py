@@ -63,9 +63,9 @@ class SubCategoryProductScheme(BaseModel):
 class RequestDataScheme(BaseModel):
     min: Union[float, None]
     max: Union[float, None]
-    sizes: List[int] | None = None
+    sizes: Union[List[int], None]
     category: Union[str, None]
-    brands: List[int] | None = None
+    brands: Union[List[int], None]
 
 
 class SizeScheme(BaseModel):
@@ -88,7 +88,7 @@ class ShoppingSaveCartScheme(BaseModel):
 class UserCardScheme(BaseModel):
     card_number: str = Field(max_length=16, min_length=16)
     card_expiration: str = Field(max_length=4, min_length=4)
-    card_cvc: str | None = None
+    card_cvc: Union[str, None]
 
 
 class CardScheme(BaseModel):

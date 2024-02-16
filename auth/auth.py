@@ -33,9 +33,15 @@ pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 @register_router.post('/register')
 async def register(user: User, session: AsyncSession = Depends(get_async_session)):
     if user.password1 == user.password2:
-        if not select(users).where(users.c.username == user.username).exists:
+        username_exist_query = select(users).where(users.c.username == user.username)
+        username__data = await session.execute(username_exist_query)
+        username_data = username__data.scalar()
+        if username_data:
             return {'success': False, 'message': 'Username already exists!'}
-        if not select(users).where(users.c.email == user.email).exists:
+        email_exist_query = select(users).where(users.c.username == user.username)
+        email__data = await session.execute(email_exist_query)
+        email_data = email__data.scalar()
+        if email_data:
             return {'success': False, 'message': 'Email already exists!'}
         password = pwd_context.hash(user.password1)
         user_in_db = UserInDB(**dict(user), password=password, joined_at=datetime.utcnow())

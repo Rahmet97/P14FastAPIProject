@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, date
-from typing import List
+from typing import List, Union
 
 import aiofiles
 import secrets
@@ -142,7 +142,7 @@ async def update_subcategory(
 
 @router.get('/products', response_model=List[ProductListSchema])
 async def product_list(
-        category_id: int | None,
+        category_id: Union[int, None],
         token: dict = Depends(verify_token),
         session: AsyncSession = Depends(get_async_session)
 ):
@@ -170,9 +170,9 @@ async def user_list(token: dict = Depends(verify_token), session: AsyncSession =
 
 @router.get('/order', response_model=List[OrderScheme])
 async def order_list(
-        start_date: datetime | None = None,
-        end_date: datetime | None = None,
-        status: str | None = None,
+        start_date: Union[datetime, None],
+        end_date: Union[datetime, None],
+        status: Union[str, None],
         today: bool = False,
         token: dict = Depends(verify_token),
         session: AsyncSession = Depends(get_async_session)

@@ -51,6 +51,19 @@ services:
     expose:
       - 6379
 
+  nginx:
+    build: ./nginx
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+#      - static_volume:/app/static
+      - media_volume:/media
+    ports:
+      - "443:443"
+    depends_on:
+      - fastapi
 
 volumes:
   media_volume:

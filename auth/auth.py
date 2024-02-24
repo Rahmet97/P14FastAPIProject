@@ -38,7 +38,7 @@ async def register(user: User, session: AsyncSession = Depends(get_async_session
         username_data = username__data.scalar()
         if username_data:
             return {'success': False, 'message': 'Username already exists!'}
-        email_exist_query = select(users).where(users.c.username == user.username)
+        email_exist_query = select(users).where(users.c.email == user.email)
         email__data = await session.execute(email_exist_query)
         email_data = email__data.scalar()
         if email_data:
